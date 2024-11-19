@@ -1,167 +1,223 @@
-#include <GameOfLife.h>
-#include <iostream>
+#include "include/GameOfLife.h"
 #include <fstream>
-#include <vector>
-#include <string>
+#include <iostream>
+#include <sstream>
 #include <random>
-#include <algorithm>
-#include <cctype>
+#include <filesystem>
 
 // Функция для проверки, заканчивается ли строка на заданный суффикс
-bool endsWith(const std::string &str, const std::string &suffix) {
-    if (str.length() < suffix.length()) { // Если длина строки меньше длины суффикса, возвращаем false
+bool endsWith(const std::string& str, const std::string& suffix) {
+    if (str.length() < suffix.length()) {
         return false;
     }
-    return str.substr(str.length() - suffix.length()) == suffix; // Сравниваем суффикс с концом строки
+    return str.substr(str.length() - suffix.length()) == suffix;
 }
 
-// Функция для проверки, является ли строка целым числом
-bool isInteger(const std::string &str) {
-    for (char c : str) { // Проходим по каждому символу строки
-        if (!std::isdigit(c)) { // Если символ не является цифрой, возвращаем false
-            return false;
-        }
+namespace fs = std::filesystem;
+
+void Game::loadTemplate(const std::string& filename, int startX, int startY) {
+    std::ifstream file("templates/" + filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Template file not found: " + filename);
     }
-    return true; // Если все символы являются цифрами, возвращаем true
-}
 
-// Метод для чтения состояния игры из файла
-void Game::readFromFile(std::string filename) {
-    std::ifstream inputFile(filename); // Открываем файл для чтения
     std::string line;
-
-    if (inputFile.is_open()) { // Проверяем, открыт ли файл
-        std::getline(inputFile, line); // Пропускаем первую строку
-        std::getline(inputFile, line); // Пропускаем вторую строку
-        gameName = line.substr(3); // Считываем название игры
-        std::getline(inputFile, line);
-        parseRules(line.substr(3)); // Считываем правила
-        std::getline(inputFile, line);
-        parseSize(line.substr(3)); // Считываем размер поля
-
-        while (std::getline(inputFile, line)) {
-            parseCell(line); // Считываем координаты живых клеток
-        }
-
-        inputFile.close(); // Закрываем файл
-    } else {
-        std::cerr << "Unable to open input file!" << std::endl; // Выводим сообщение об ошибке, если файл не открыт
-    }
-}
-
-// Метод для генерации "пульсара" на поле
-void Game::generatePulsar() {
-    std::vector<std::string> Pulsar = {
-        "...OOO...OOO...",
-        "...............",
-        ".O....O.O....O.",
-        ".O....O.O....O.",
-        ".O....O.O....O.",
-        "...OOO...OOO...",
-        "...............",
-        "...OOO...OOO...",
-        ".O....O.O....O.",
-        ".O....O.O....O.",
-        ".O....O.O....O.",
-        "...............",
-        "...OOO...OOO..."
-    };
-
-    for (int i = 0; i < Pulsar.size(); i++) {
-        for (int j = 0; j < Pulsar[0].size(); j++) {
-            if (Pulsar[i][j] == 'O') {
-                field[2 + i][2 + j].isAlive = true; // Устанавливаем живые клетки на поле
+    int y = startY;
+    while (std::getline(file, line)) {
+        for (size_t x = 0; x < line.size(); ++x) {
+            if (line[x] == 'O') {
+                field[y][x + startX].isAlive = true;
             }
         }
+        ++y;
     }
+    file.close();
 }
 
-// Метод для генерации "пушки Госпера" на поле
-void Game::generateGliderGun() {
-    std::vector<std::string> gosperGliderGun = {
-        "........................O...........",
-        "......................O.O...........",
-        "............OO......OO............OO",
-        "...........O...O....OO............OO",
-        "OO........O.....O...OO..............",
-        "OO........O...O.OO....O.O...........",
-        "..........O.....O.......O...........",
-        "...........O...O....................",
-        "............OO......................"
-    };
-
-    for (int i = 0; i < gosperGliderGun.size(); i++) {
-        for (int j = 0; j < gosperGliderGun[0].size(); j++) {
-            if (gosperGliderGun[i][j] == 'O') {
-                field[2 + i][2 + j].isAlive = true; // Устанавливаем живые клетки на поле
-            }
-        }
-    }
-}
-
-// Метод для генерации "планера" на поле
-void Game::generateGlider() {
-    field[0][1].isAlive = true;
-    field[1][2].isAlive = true;
-    field[2][0].isAlive = true;
-    field[2][1].isAlive = true;
-    field[2][2].isAlive = true; // Устанавливаем живые клетки на поле
-}
-
-// Метод для генерации "мигающего" паттерна на поле
-void Game::generateBlinker() {
-    field[2][2].isAlive = true;
-    field[2][3].isAlive = true;
-    field[2][4].isAlive = true; // Устанавливаем живые клетки на поле
-}
-
-// Метод для генерации "пентадекалона" на поле
-void Game::generatePentaDecathlon() {
-    std::vector<std::string> PentaDecathlon = {
-        ".O.",
-        ".O.",
-        "O.O",
-        ".O.",
-        ".O.",
-        ".O.",
-        ".O.",
-        "O.O",
-        ".O.",
-        ".O."
-    };
-
-    for (int i = 0; i < PentaDecathlon.size(); i++) {
-        for (int j = 0; j < PentaDecathlon[0].size(); j++) {
-            if (PentaDecathlon[i][j] == 'O') {
-                field[7 + i][21 + j].isAlive = true; // Устанавливаем живые клетки на поле
-            }
-        }
-    }
-}
-
-// Метод для генерации случайного состояния игры
 void Game::generateRandomState() {
-    birthRules = {3};
-    survivalRules = {2, 3};
+    const std::string templatesDir = "templates";
+    std::vector<std::string> templates;
+
+    if (fs::exists(templatesDir) && fs::is_directory(templatesDir)) {
+        for (const auto& entry : fs::directory_iterator(templatesDir)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+                templates.push_back(entry.path().filename().string());
+            }
+        }
+    } else {
+        std::cerr << "Templates directory not found!" << std::endl;
+        return;
+    }
+
+    if (templates.empty()) {
+        std::cerr << "No templates found in the templates directory!" << std::endl;
+        return;
+    }
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 4);
-    int variant = dis(gen);
+    std::uniform_int_distribution<> dis(0, templates.size() - 1);
 
-    switch (variant) {
-        case 0: generateGlider(); break;
-        case 1: generateGliderGun(); break;
-        case 2: generatePulsar(); break;
-        case 3: generateBlinker(); break;
-        case 4: generatePentaDecathlon(); break;
+    std::string selectedTemplate = templates[dis(gen)];
+    int startX = std::uniform_int_distribution<>(0, numCols - 1)(gen);
+    int startY = std::uniform_int_distribution<>(0, numRows - 1)(gen);
+
+    loadTemplate(selectedTemplate, startX, startY);
+
+    std::cout << "Loaded template: " << selectedTemplate << " at position (" << startX << ", " << startY << ")" << std::endl;
+}
+
+bool Game::isInteger(const std::string& str) {
+    if (str.empty()) return false;
+    for (char c : str) {
+        if (!std::isdigit(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void Game::parseRules(const std::string& ruleString) {
+    std::string birth, survival;
+    std::string delimiter = "/";
+    size_t pos = ruleString.find(delimiter);
+
+    if (pos != std::string::npos) {
+        // Разделяем строку по "/"
+        birth = ruleString.substr(1, pos - 1);  // Правила рождения: после "B"
+        survival = ruleString.substr(pos + 1);  // Правила выживания: после "S"
+
+        // Очищаем векторы перед добавлением новых значений
+        birthRules.clear();
+        survivalRules.clear();
+
+        // Добавляем правила для рождения
+        for (char c : birth) {
+            if (isdigit(c)) {
+                int rule = c - '0';
+                if (rule >= 0 && rule <= 8 && std::find(birthRules.begin(), birthRules.end(), rule) == birthRules.end()) {
+                    birthRules.push_back(rule);
+                }
+            }
+        }
+
+        // Добавляем правила для выживания
+        for (char c : survival) {
+            if (isdigit(c)) {
+                int rule = c - '0';
+                if (rule >= 0 && rule <= 8 && std::find(survivalRules.begin(), survivalRules.end(), rule) == survivalRules.end()) {
+                    survivalRules.push_back(rule);
+                }
+            }
+        }
     }
 }
 
-// Метод для вывода текущего состояния игры на экран
+
+
+
+void Game::readFromFile(const std::string& filename) {
+    std::ifstream inputFile(filename);
+    if (!inputFile.is_open()) {
+        std::cerr << "Error: Unable to open input file '" << filename << "'" << std::endl;
+        return;
+    }
+
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+
+        std::istringstream iss(line);
+        int x, y;
+        if (iss >> x >> y) {
+            if (x >= 0 && x < numCols && y >= 0 && y < numRows) {
+                field[y][x].isAlive = true;
+            }
+        }
+    }
+
+    inputFile.close();
+    std::cout << "Game state loaded from file '" << filename << "'" << std::endl;
+}
+
+void Game::saveToFile(const std::string& filename) {
+    std::ofstream outputFile(filename);
+    if (!outputFile.is_open()) {
+        std::cerr << "Error: Unable to open output file '" << filename << "'" << std::endl;
+        return;
+    }
+
+    outputFile << "#Life 1.06" << std::endl;
+    outputFile << "#N " << gameName << std::endl;
+    outputFile << "#R B";
+
+    for (int i : birthRules) {
+        outputFile << i;
+    }
+    outputFile << "/S";
+
+    for (int i : survivalRules) {
+        outputFile << i;
+    }
+    outputFile << std::endl;
+
+    outputFile << "#S " << numRows << " " << numCols << std::endl;
+
+    for (int i = 0; i < numRows; ++i) {
+        for (int j = 0; j < numCols; ++j) {
+            if (field[i][j].isAlive) {
+                outputFile << j << " " << i << std::endl;
+            }
+        }
+    }
+
+    outputFile.close();
+    std::cout << "Game state saved to file '" << filename << "'" << std::endl;
+}
+
+void Game::calculateNextState() {
+    std::vector<std::vector<Cell>> nextState(numRows, std::vector<Cell>(numCols));
+
+    for (int row = 0; row < numRows; ++row) {
+        for (int col = 0; col < numCols; ++col) {
+            int neighbors = countNeighbors(row, col);
+
+            if (field[row][col].isAlive) {
+                // Если клетка жива, она должна выжить только если количество соседей соответствует survivalRules
+                nextState[row][col].isAlive = std::find(survivalRules.begin(), survivalRules.end(), neighbors) != survivalRules.end();
+            } else {
+                // Если клетка мертва, она должна воскреснуть только если количество соседей соответствует birthRules
+                nextState[row][col].isAlive = std::find(birthRules.begin(), birthRules.end(), neighbors) != birthRules.end();
+            }
+        }
+    }
+
+    // Переносим новое состояние в поле
+    field = std::move(nextState);
+}
+
+
+
+int Game::countNeighbors(int row, int col) {
+    int count = 0;
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            if (i == 0 && j == 0) continue;
+            int neighborRow = (row + i + numRows) % numRows;
+            int neighborCol = (col + j + numCols) % numCols;
+            if (field[neighborRow][neighborCol].isAlive) {
+                ++count;
+            }
+        }
+    }
+    return count;
+}
+
 void Game::printState() {
-    system("clear"); // Очистка экрана
-    std::cout << "#Life 1.06" << std::endl;
+    system("clear");
+    std::cout << "#Life v1.0" << std::endl;
     std::cout << "#N " << gameName << std::endl;
     std::cout << "#R B";
 
@@ -178,49 +234,13 @@ void Game::printState() {
     std::cout << curIteration << std::endl;
     std::cout << "┌" << std::string(field[0].size(), '-') << "┐" << std::endl;
 
-    for (const auto &row : field) {
+    for (const auto& row : field) {
         std::cout << "│";
-        for (const auto &cell : row) {
+        for (const auto& cell : row) {
             std::cout << (cell.isAlive ? 'X' : ' ');
         }
         std::cout << "│" << std::endl;
     }
 
     std::cout << "└" << std::string(field[0].size(), '-') << "┘" << std::endl;
-}
-
-// Метод для сохранения текущего состояния игры в файл
-void Game::saveToFile(std::string filename) {
-    std::ofstream outputFile(filename);
-
-    if (outputFile.is_open()) {
-        outputFile << "#Life 1.06" << std::endl;
-        outputFile << "#N " << gameName << std::endl;
-        outputFile << "#R B";
-
-        for (int i : birthRules) {
-            outputFile << i;
-        }
-        outputFile << "/S";
-
-        for (int i : survivalRules) {
-            outputFile << i;
-        }
-        outputFile << std::endl;
-
-        outputFile << "#S " << numRows << " " << numCols << std::endl;
-
-        for (int i = 0; i < numRows; i++) {
-            for (int j = 0; j < numCols; j++) {
-                if (field[i][j].isAlive) {
-                    outputFile << j << " " << i << std::endl;
-                }
-            }
-        }
-
-        outputFile.close();
-        std::cout << "Game saved to " << filename << std::endl;
-    } else {
-        std::cerr << "Unable to open output file!" << std::endl;
-    }
 }

@@ -1,105 +1,152 @@
 ﻿#include <gtest/gtest.h>
-#include "GameOfLife.h"
+#include "include/GameOfLife.h"
+#include <fstream>
 #include <string>
 
+// Тесты на функции endsWith и isInteger
 TEST(GameOfLifeTest, func_endsWithTest) {
-    std::string str1 = "asd.lif";
-    std::string str2 = "asd.life";
-    EXPECT_FALSE(endsWith(str1, ".life"));
-    EXPECT_TRUE(endsWith(str1, ".lif"));
-    EXPECT_FALSE(endsWith(str2, ".lif"));
-    EXPECT_TRUE(endsWith(str2, ".life"));
+    EXPECT_TRUE(endsWith("example.life", ".life"));
+    EXPECT_FALSE(endsWith("example.txt", ".life"));
 }
 
 TEST(GameOfLifeTest, func_isIntegerTest) {
-    EXPECT_FALSE(isInteger("123a"));
-    EXPECT_FALSE(isInteger("b123"));
-    EXPECT_TRUE(isInteger("123"));
-    EXPECT_TRUE(isInteger("1231233"));
+        // Пример теста с объектом Game
+    Game game("Test Game", 5, 5);
+
+    EXPECT_TRUE(game.isInteger("42"));
+    EXPECT_FALSE(game.isInteger("42a"));
+    EXPECT_FALSE(game.isInteger(""));
+
 }
 
-TEST(GameOfLifeTest, GameConstructorTest) {
-    Game game("Test Game", 2, 123);
-    EXPECT_EQ(game.numCols, 123);
-    EXPECT_EQ(game.numRows, 2);
+// Тест конструктора
+TEST(GameOfLifeTest, ConstructorTest) {
+    Game game("Test Game", 10, 10);
+    EXPECT_EQ(game.numRows, 10);
+    EXPECT_EQ(game.numCols, 10);
     EXPECT_EQ(game.gameName, "Test Game");
     EXPECT_EQ(game.curIteration, 1);
     EXPECT_FALSE(game.survivalRules.empty());
     EXPECT_FALSE(game.birthRules.empty());
 }
 
-TEST(GameOfLifeTest, func_CalculateNextStateTest1) {
-    Game game("Test Game", 2, 2);
-    game.field[0][0].isAlive = true;
-    game.field[0][1].isAlive = true;
-    game.field[1][1].isAlive = true;
-    game.calculateNextState();
-    EXPECT_FALSE(game.field[0][0].isAlive);
-    EXPECT_FALSE(game.field[0][1].isAlive);
-    EXPECT_FALSE(game.field[1][0].isAlive);
-    EXPECT_FALSE(game.field[1][1].isAlive);
-}
-
-TEST(GameOfLifeTest, func_CalculateNextStateTest2) {
-    Game game("Test Game", 5, 5);
-    game.field[0][0].isAlive = true;
-    game.field[1][0].isAlive = true;
-    game.field[0][1].isAlive = true;
-    game.field[1][0].isAlive = true;
-    game.calculateNextState();
-    EXPECT_TRUE(game.field[0][0].isAlive);
-    EXPECT_TRUE(game.field[0][1].isAlive);
-    EXPECT_TRUE(game.field[1][0].isAlive);
-    EXPECT_TRUE(game.field[1][1].isAlive);
-}
-
-TEST(GameTest, func_CountNeighborsTest) {
-    Game game("Test Game", 5, 5);
-    game.field[0][0].isAlive = true;
-    game.field[0][1].isAlive = true;
-    game.field[1][1].isAlive = true;
-    int count = game.countNeighbors(1, 1);
-    ASSERT_EQ(count, 2);
-}
-
-TEST(GameTest, func_ParseRulesTest) {
+// Тест парсинга правил
+TEST(GameOfLifeTest, ParseRulesTest) {
     Game game("Test Game", 10, 10);
-    std::string ruleString = "B3/S23";
-    game.parseRules(ruleString);
-    std::vector<int> expectedBirthRules = {3};
-    std::vector<int> expectedSurvivalRules = {2, 3};
-    ASSERT_EQ(game.birthRules, expectedBirthRules);
-    ASSERT_EQ(game.survivalRules, expectedSurvivalRules);
+    game.parseRules("B3/S23");
+    EXPECT_EQ(game.birthRules, std::vector<int>({3}));
+    EXPECT_EQ(game.survivalRules, std::vector<int>({2, 3}));
 }
 
-TEST(GameTest, func_parseSizeTestValidInput) {
-    Game game("Test Game", 0, 0);
-    game.parseSize("10 20");
-    EXPECT_EQ(game.numRows, 10);
-    EXPECT_EQ(game.numCols, 20);
+// Тест загрузки шаблона из файла
+TEST(GameOfLifeTest, LoadTemplateTest) {
+    Game game("Test Game", 10, 10);
+
+    // Создаем тестовый шаблон
+    std::ofstream templateFile("templates/test_template.txt");
+    templateFile << "...\n.O.\n...";  // Пример простого шаблона
+    templateFile.close();
+
+    // Теперь файл существует, и можно его загрузить
+    ASSERT_NO_THROW(game.loadTemplate("test_template.txt", 1, 1));
+    EXPECT_TRUE(game.field[2][2].isAlive);
+    EXPECT_FALSE(game.field[1][1].isAlive);
+
+    // Удаляем тестовый файл
+    std::remove("templates/test_template.txt");
 }
 
-TEST(GameTest, func_parseSizeTestInvalidInput) {
-    Game game("Test Game", 0, 0);
-    game.parseSize("invalid input");
-    EXPECT_EQ(game.numRows, 0);
-    EXPECT_EQ(game.numCols, 0);
+
+
+// Тест загрузки несуществующего шаблона
+TEST(GameOfLifeTest, LoadNonexistentTemplateTest) {
+    Game game("Test Game", 10, 10);
+    EXPECT_THROW(game.loadTemplate("templates/nonexistent.txt", 0, 0), std::runtime_error);
 }
 
-TEST(GameTest, func_parseCellTestValidInput) {
-    Game game("Test Game", 10, 20);
-    game.parseCell("5 5");
-    EXPECT_TRUE(game.field[5][5].isAlive);
+// Тест на корректность подсчета соседей
+TEST(GameOfLifeTest, CountNeighborsTest) {
+    Game game("Test Game", 5, 5);
+    game.field[1][1].isAlive = true;
+    game.field[1][2].isAlive = true;
+    game.field[2][1].isAlive = true;
+    EXPECT_EQ(game.countNeighbors(2, 2), 3);
+    EXPECT_EQ(game.countNeighbors(1, 1), 2);
 }
 
-TEST(GameTest, func_parseCellTestInvalidInput) {
-    Game game("Test Game", 10, 20);
-    game.parseCell("invalid input");
-    EXPECT_FALSE(game.field[0][0].isAlive);
+// Тест на выполнение следующего шага игры
+TEST(GameOfLifeTest, CalculateNextStateTest) {
+    Game game("Test Game", 3, 3);
+    game.field[0][1].isAlive = true;
+    game.field[1][1].isAlive = true;
+    game.field[2][1].isAlive = true;
+
+    game.calculateNextState();
+
+    EXPECT_TRUE(game.field[1][0].isAlive); 
+    EXPECT_TRUE(game.field[1][1].isAlive);  
+    EXPECT_TRUE(game.field[1][2].isAlive);  
+    EXPECT_TRUE(game.field[0][1].isAlive);  
+    EXPECT_TRUE(game.field[2][1].isAlive);  
+}
+
+
+// Тест стабильного паттерна (блок)
+TEST(GameOfLifeTest, StablePatternTest) {
+    Game game("Test Game", 4, 4);
+    game.field[1][1].isAlive = true;
+    game.field[1][2].isAlive = true;
+    game.field[2][1].isAlive = true;
+    game.field[2][2].isAlive = true;
+
+    game.calculateNextState();
+
+    EXPECT_TRUE(game.field[1][1].isAlive);
+    EXPECT_TRUE(game.field[1][2].isAlive);
+    EXPECT_TRUE(game.field[2][1].isAlive);
+    EXPECT_TRUE(game.field[2][2].isAlive);
+}
+
+// Тест осциллирующего паттерна (мигалка)
+TEST(GameOfLifeTest, OscillatingPatternTest) {
+    Game game("Test Game", 5, 5);
+    game.field[2][1].isAlive = true;
+    game.field[2][2].isAlive = true;
+    game.field[2][3].isAlive = true;
+
+    game.calculateNextState();
+
+    EXPECT_TRUE(game.field[1][2].isAlive);
+    EXPECT_TRUE(game.field[2][2].isAlive);
+    EXPECT_TRUE(game.field[3][2].isAlive);
+
+    game.calculateNextState();
+
+    EXPECT_TRUE(game.field[2][1].isAlive);
+    EXPECT_TRUE(game.field[2][2].isAlive);
+    EXPECT_TRUE(game.field[2][3].isAlive);
+}
+
+// Тест сохранения и загрузки из файла
+TEST(GameOfLifeTest, SaveAndLoadFileTest) {
+    Game game("Test Game", 5, 5);
+    game.field[1][1].isAlive = true;
+    game.field[2][2].isAlive = true;
+
+    game.saveToFile("test_save.life");
+
+    Game loadedGame("Loaded Game", 5, 5);
+    loadedGame.readFromFile("test_save.life");
+
+    EXPECT_EQ(loadedGame.field[1][1].isAlive, true);
+    EXPECT_EQ(loadedGame.field[2][2].isAlive, true);
+    EXPECT_EQ(loadedGame.numRows, 5);
+    EXPECT_EQ(loadedGame.numCols, 5);
+
+    std::remove("test_save.life");
 }
 
 int main(int argc, char* argv[]) {
-    std::cout << "Running tests..." << std::endl;
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
