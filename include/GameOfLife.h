@@ -33,11 +33,6 @@ public:
 
     // Методы
     void readFromFile(const std::string& filename);
-    void generatePulsar();
-    void generateGliderGun();
-    void generateGlider();
-    void generateBlinker();
-    void generatePentaDecathlon();
     void generateRandomState();
     void printState();
     void saveToFile(const std::string& filename);
