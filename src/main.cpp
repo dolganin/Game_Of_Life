@@ -3,6 +3,8 @@
 #include <string>
 #include <cstring>
 #include <cstdlib>
+#include <chrono>
+#include <thread>
 
 // Функция для вывода исторической справки о Game of Life
 void printHistory() {
@@ -111,27 +113,30 @@ int main(int argc, char* argv[]) {
             if (std::cin.peek() != '\n') { // Проверяем, есть ли дополнительный аргумент
                 std::cin >> ticks;
             }
+            // Выполняем итерации с задержкой
             for (int i = 0; i < ticks; ++i) {
                 game.calculateNextState();
+                game.printState();  // Показываем текущее состояние после итерации
+
+                // Задержка в 500 миллисекунд (0.5 секунды) между итерациями
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
             }
-            game.printState();
         } else if (command == "random") {
             game.generateRandomState();
             game.printState();
         } else if (command == "template") {
-        std::string templateName;
-        std::cin >> templateName;
+            std::string templateName;
+            std::cin >> templateName;
 
-        // Генерация случайных координат для начала шаблона
-        int startX = rand() % game.numCols;
-        int startY = rand() % game.numRows;
+            // Генерация случайных координат для начала шаблона
+            int startX = rand() % game.numCols;
+            int startY = rand() % game.numRows;
 
-        // Загружаем шаблон, передавая его имя и сгенерированные координаты
-        game.loadTemplate(templateName, startX, startY);
+            // Загружаем шаблон, передавая его имя и сгенерированные координаты
+            game.loadTemplate(templateName, startX, startY);
 
-        game.printState();
-    }
- else {
+            game.printState();
+        } else {
             std::cerr << "Invalid command! Type 'help' for available commands." << std::endl;
         }
     }

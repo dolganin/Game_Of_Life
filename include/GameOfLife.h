@@ -9,17 +9,12 @@
 #include <algorithm>
 #include <thread>
 #include <filesystem>
+#include "Cell.h" // Подключаем заголовок Cell.h
 
 // Функция для проверки, заканчивается ли строка на заданный суффикс
 bool endsWith(const std::string& str, const std::string& suffix);
 
 // Функция для проверки, является ли строка целым числом
-
-// Класс для представления клетки
-class Cell {
-public:
-    bool isAlive = false;
-};
 
 // Класс игры "Жизнь"
 class Game {
