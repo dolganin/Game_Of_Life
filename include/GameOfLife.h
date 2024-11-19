@@ -14,8 +14,6 @@
 // Функция для проверки, заканчивается ли строка на заданный суффикс
 bool endsWith(const std::string& str, const std::string& suffix);
 
-// Функция для проверки, является ли строка целым числом
-
 // Класс игры "Жизнь"
 class Game {
 public:
@@ -51,7 +49,16 @@ public:
     
     // Загрузить шаблон с координатами
     void loadTemplate(const std::string& filename, int startX, int startY);
+
+    // Загрузить правила из файла
+    void loadRulesFromFile(const std::string& filename);
+
+    // Сгенерировать случайные правила
+    void generateRandomRules();
+
+    // Функция для проверки, является ли строка целым числом
     bool isInteger(const std::string& str);
+
 };
 
 #endif // GAMEOFLIFE_H

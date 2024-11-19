@@ -107,7 +107,9 @@ int main(int argc, char* argv[]) {
                       << "  help                - Show this help message.\n"
                       << "  tick <n=1>          - Calculate n iterations (default: 1) and display the game field.\n"
                       << "  random              - Load a new random template.\n"
-                      << "  template <name>     - Load a predefined template (e.g., glider, pulsar).\n";
+                      << "  template <name>     - Load a predefined template (e.g., glider.txt, pulsar.txt).\n"
+                      << "  loadrules <filename> - Load game rules from the specified file.\n"
+                      << "  randomrules         - Generate random game rules.\n";
         } else if (command == "tick") {
             int ticks = 1;
             if (std::cin.peek() != '\n') { // Проверяем, есть ли дополнительный аргумент
@@ -136,6 +138,12 @@ int main(int argc, char* argv[]) {
             game.loadTemplate(templateName, startX, startY);
 
             game.printState();
+        } else if (command == "loadrules") {
+            std::string rulesFilename;
+            std::cin >> rulesFilename;
+            game.loadRulesFromFile(rulesFilename);
+        } else if (command == "randomrules") {
+            game.generateRandomRules();
         } else {
             std::cerr << "Invalid command! Type 'help' for available commands." << std::endl;
         }

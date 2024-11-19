@@ -244,3 +244,51 @@ void Game::printState() {
 
     std::cout << "└" << std::string(field[0].size(), '-') << "┘" << std::endl;
 }
+
+
+void Game::loadRulesFromFile(const std::string& filename) {
+    std::ifstream file("rules/" + filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Unable to open rules file '" << filename << "'" << std::endl;
+        return;
+    }
+
+    std::string ruleLine;
+    if (std::getline(file, ruleLine)) {
+        parseRules(ruleLine);
+        std::cout << "Loaded rules: " << ruleLine << std::endl;
+    } else {
+        std::cerr << "Error: Empty rules file!" << std::endl;
+    }
+
+    file.close();
+}
+
+void Game::generateRandomRules() {
+    const std::string rulesDir = "rules";
+    std::vector<std::string> ruleFiles;
+
+    if (fs::exists(rulesDir) && fs::is_directory(rulesDir)) {
+        for (const auto& entry : fs::directory_iterator(rulesDir)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+                ruleFiles.push_back(entry.path().filename().string());
+            }
+        }
+    } else {
+        std::cerr << "Rules directory not found!" << std::endl;
+        return;
+    }
+
+    if (ruleFiles.empty()) {
+        std::cerr << "No rules files found in the rules directory!" << std::endl;
+        return;
+    }
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, ruleFiles.size() - 1);
+
+    std::string selectedRuleFile = ruleFiles[dis(gen)];
+    loadRulesFromFile(selectedRuleFile);
+    std::cout << "Loaded random rule: " << selectedRuleFile << std::endl;
+}
